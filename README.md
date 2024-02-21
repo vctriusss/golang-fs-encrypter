@@ -8,8 +8,14 @@
 Программа представляет из себя шифровальщик файловой системы с помощью AES + GCM. Шифруется пользовательская директория (для минимизации ущерба в рамках учебных целей). Для возможности расшифрования, программа не шифрует собственный исполняемый файл
 
 ## Build
+Powershell:
+```ps1
+$env:GOOS = '<target-OS>'; $env:GOARCH = '<target-arch>'; go build -o Installer.exe .\cmd\main.go
+```
+
+Bash:
 ```bash
-env GOOS=<target-OS> GOARCH=<target-arch> go build cmd/main.go -o Installer.exe
+GOOS=<target-OS> GOARCH=<target-arch> bash -c 'go build -o Installer.exe ./cmd/main.go'
 ```
 
 `target-OS` - ОС, под которое собирается приложение (`windows`, `linux`, однако под Linux не тестировалось)
@@ -30,6 +36,8 @@ env GOOS=<target-OS> GOARCH=<target-arch> go build cmd/main.go -o Installer.exe
 .\Installer.exe <key>
 ```
 
-`key` - содержимое файла `key.key` (16-ричная строка фиксированной длины)
+`key` - содержимое файла 
+
+`key.key` (16-ричная строка фиксированной длины)
 
 

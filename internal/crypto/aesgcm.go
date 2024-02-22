@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"errors"
 )
 
 type AESGCM struct {
@@ -36,6 +37,9 @@ func (c *AESGCM) EncryptBytes(bytes []byte) ([]byte, error) {
 
 func (c *AESGCM) DecryptBytes(bytesEncrypted []byte) ([]byte, error) {
 	nonceSize := c.gcm.NonceSize()
+	if nonceSize > len(bytesEncrypted) {
+		return nil, errors.New("file might not be ecnrypted")
+	}
 	nonce, fileBytesEncrypted := bytesEncrypted[:nonceSize], bytesEncrypted[nonceSize:]
 
 	fileBytes, err := c.gcm.Open(nil, []byte(nonce), []byte(fileBytesEncrypted), nil)

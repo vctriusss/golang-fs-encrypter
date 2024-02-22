@@ -43,7 +43,7 @@ func main() {
 
 	// Uncomment for testing
 	// homeDir = "./dir"
-	// keyDir = "./"
+	// keyFilePath = "./key.key"
 
 	if len(os.Args) == 2 {
 		mode = MODE_DECRYPT

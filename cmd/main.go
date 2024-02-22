@@ -74,11 +74,8 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	err = filepath.WalkDir(homeDir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() || path == execPath {
+	filepath.WalkDir(homeDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || path == execPath{
 			return nil
 		}
 
@@ -107,9 +104,6 @@ func main() {
 
 		return nil
 	})	
-	if err != nil {
-		return
-	}
 	
 	wg.Wait()
 

